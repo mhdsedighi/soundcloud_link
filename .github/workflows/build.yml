@@ -38,8 +38,11 @@ jobs:
           mv ~/Android/Sdk/cmdline-tools/cmdline-tools ~/Android/Sdk/cmdline-tools/latest
           echo "export ANDROID_HOME=~/Android/Sdk" >> $GITHUB_ENV
           echo "export ANDROID_NDK_HOME=~/Android/Sdk/ndk/25.2.9519653" >> $GITHUB_ENV
-          yes "" | ~/Android/Sdk/cmdline-tools/latest/bin/sdkmanager --licenses || true
-          ~/Android/Sdk/cmdline-tools/latest/bin/sdkmanager "platform-tools" "platforms;android-33" "build-tools;33.0.2" "ndk;25.2.9519653"
+          # Accept all SDK licenses, including preview licenses
+          yes | ~/Android/Sdk/cmdline-tools/latest/bin/sdkmanager --licenses --sdk_root=~/Android/Sdk || true
+          ~/Android/Sdk/cmdline-tools/latest/bin/sdkmanager --sdk_root=~/Android/Sdk "platform-tools" "platforms;android-33" "build-tools;33.0.2" "ndk;25.2.9519653"
+          # Verify AIDL is installed
+          ls ~/Android/Sdk/build-tools/33.0.2/aidl || echo "AIDL not found"
 
       - name: Build APK
         run: |
