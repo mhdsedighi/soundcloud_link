@@ -1,0 +1,70 @@
+name: Build Android APK
+
+on:
+  push:
+    branches:
+      - master
+
+permissions:
+  contents: write  # This gives permission to create releases
+
+jobs:
+  build:
+    runs-on: ubuntu-latest  # Buildozer requires a Linux environment
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.8'  # Buildozer is compatible with Python 3.8
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install buildozer
+          pip install cython==0.29.36  # Specific version for buildozer compatibility
+          pip install kivy==2.3.0 requests  # Install app dependencies
+
+      - name: Install Android SDK and NDK
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y openjdk-17-jdk
+          wget https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip -O commandlinetools.zip
+          unzip commandlinetools.zip -d cmdline-tools
+          mkdir -p ~/Android/Sdk
+          mv cmdline-tools/cmdline-tools ~/Android/Sdk/cmdline-tools
+          export ANDROID_HOME=~/Android/Sdk
+          yes | ~/Android/Sdk/cmdline-tools/bin/sdkmanager --licenses
+          ~/Android/Sdk/cmdline-tools/bin/sdkmanager "platform-tools" "platforms;android-33" "build-tools;33.0.2" "ndk;25.2.9519653"
+          echo "export ANDROID_HOME=~/Android/Sdk" >> $GITHUB_ENV
+          echo "export ANDROID_NDK_HOME=~/Android/Sdk/ndk/25.2.9519653" >> $GITHUB_ENV
+
+      - name: Build APK
+        run: |
+          buildozer init
+          # Update buildozer.spec with required settings
+          sed -i 's/title = .*/title = SoundCloud Link Converter/' buildozer.spec
+          sed -i 's/package\.name = .*/package.name = soundcloudlinkconverter/' buildozer.spec
+          sed -i 's/requirements = .*/requirements = python3==3.8.10,kivy==2.3.0,requests/' buildozer.spec
+          sed -i 's/android\.permissions = .*/android.permissions = INTERNET/' buildozer.spec
+          buildozer android debug
+
+      - name: Upload APK as Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: SoundCloudLinkConverterAPK
+          path: bin/*.apk
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: bin/*.apk
+          tag_name: latest
+          name: Latest APK Build
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
