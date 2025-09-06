@@ -32,18 +32,28 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y openjdk-17-jdk unzip
+          # Clear any existing SDK to avoid caching issues
+          rm -rf ~/Android/Sdk
           mkdir -p ~/Android/Sdk/cmdline-tools
           wget https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip -O commandlinetools.zip
           unzip commandlinetools.zip -d ~/Android/Sdk/cmdline-tools
           mv ~/Android/Sdk/cmdline-tools/cmdline-tools ~/Android/Sdk/cmdline-tools/latest
           echo "export ANDROID_HOME=~/Android/Sdk" >> $GITHUB_ENV
           echo "export ANDROID_NDK_HOME=~/Android/Sdk/ndk/25.2.9519653" >> $GITHUB_ENV
-          # Accept all SDK licenses
-          yes | ~/Android/Sdk/cmdline-tools/latest/bin/sdkmanager --licenses --sdk_root=~/Android/Sdk || true
-          # Install required SDK components
-          ~/Android/Sdk/cmdline-tools/latest/bin/sdkmanager --sdk_root=~/Android/Sdk "platform-tools" "platforms;android-33" "build-tools;33.0.2" "ndk;25.2.9519653"
+          # Accept all SDK licenses with retry
+          for i in {1..3}; do
+            yes | ~/Android/Sdk/cmdline-tools/latest/bin/sdkmanager --licenses --sdk_root=~/Android/Sdk && break || echo "Retry $i: License acceptance failed, retrying..."
+            sleep 5
+          done
+          # Install required SDK components with retry
+          for i in {1..3}; do
+            ~/Android/Sdk/cmdline-tools/latest/bin/sdkmanager --sdk_root=~/Android/Sdk "platform-tools" "platforms;android-33" "build-tools;33.0.2" "ndk;25.2.9519653" && break || echo "Retry $i: SDK installation failed, retrying..."
+            sleep 5
+          done
           # Verify AIDL is installed
-          ls ~/Android/Sdk/build-tools/33.0.2/aidl || echo "AIDL not found"
+          ls -l ~/Android/Sdk/build-tools/33.0.2/aidl || echo "AIDL not found"
+          # Debug: List build-tools directory contents
+          ls -l ~/Android/Sdk/build-tools/ || echo "Build-tools directory not found"
 
       - name: Build APK
         run: |
@@ -53,6 +63,8 @@ jobs:
           sed -i 's/package\.name = .*/package.name = soundcloudlinkconverter/' buildozer.spec
           sed -i 's/requirements = .*/requirements = python3==3.8.10,kivy==2.3.0,requests/' buildozer.spec
           sed -i 's/android\.permissions = .*/android.permissions = INTERNET/' buildozer.spec
+          # Debug: Display buildozer.spec
+          cat buildozer.spec
           buildozer android debug
 
       - name: Upload APK as Artifact
