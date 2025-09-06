@@ -31,16 +31,15 @@ jobs:
       - name: Install Android SDK and NDK
         run: |
           sudo apt-get update
-          sudo apt-get install -y openjdk-17-jdk
+          sudo apt-get install -y openjdk-17-jdk unzip
+          mkdir -p ~/Android/Sdk/cmdline-tools
           wget https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip -O commandlinetools.zip
-          unzip commandlinetools.zip -d cmdline-tools
-          mkdir -p ~/Android/Sdk
-          mv cmdline-tools/cmdline-tools ~/Android/Sdk/cmdline-tools
-          export ANDROID_HOME=~/Android/Sdk
-          yes | ~/Android/Sdk/cmdline-tools/bin/sdkmanager --licenses
-          ~/Android/Sdk/cmdline-tools/bin/sdkmanager "platform-tools" "platforms;android-33" "build-tools;33.0.2" "ndk;25.2.9519653"
+          unzip commandlinetools.zip -d ~/Android/Sdk/cmdline-tools
+          mv ~/Android/Sdk/cmdline-tools/cmdline-tools ~/Android/Sdk/cmdline-tools/latest
           echo "export ANDROID_HOME=~/Android/Sdk" >> $GITHUB_ENV
           echo "export ANDROID_NDK_HOME=~/Android/Sdk/ndk/25.2.9519653" >> $GITHUB_ENV
+          yes "" | ~/Android/Sdk/cmdline-tools/latest/bin/sdkmanager --licenses || true
+          ~/Android/Sdk/cmdline-tools/latest/bin/sdkmanager "platform-tools" "platforms;android-33" "build-tools;33.0.2" "ndk;25.2.9519653"
 
       - name: Build APK
         run: |
