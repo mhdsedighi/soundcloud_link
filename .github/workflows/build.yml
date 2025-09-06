@@ -6,7 +6,7 @@ on:
       - master
 
 permissions:
-  contents: write  # This gives permission to create releases
+  contents: write  # Required for creating releases
 
 jobs:
   build:
@@ -25,7 +25,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install buildozer
-          pip install cython==0.29.36  # Specific version for buildozer compatibility
+          pip install cython==0.29.36  # Specific version for Buildozer compatibility
           pip install kivy==2.3.0 requests  # Install app dependencies
 
       - name: Install Android SDK and NDK
@@ -38,8 +38,9 @@ jobs:
           mv ~/Android/Sdk/cmdline-tools/cmdline-tools ~/Android/Sdk/cmdline-tools/latest
           echo "export ANDROID_HOME=~/Android/Sdk" >> $GITHUB_ENV
           echo "export ANDROID_NDK_HOME=~/Android/Sdk/ndk/25.2.9519653" >> $GITHUB_ENV
-          # Accept all SDK licenses, including preview licenses
+          # Accept all SDK licenses
           yes | ~/Android/Sdk/cmdline-tools/latest/bin/sdkmanager --licenses --sdk_root=~/Android/Sdk || true
+          # Install required SDK components
           ~/Android/Sdk/cmdline-tools/latest/bin/sdkmanager --sdk_root=~/Android/Sdk "platform-tools" "platforms;android-33" "build-tools;33.0.2" "ndk;25.2.9519653"
           # Verify AIDL is installed
           ls ~/Android/Sdk/build-tools/33.0.2/aidl || echo "AIDL not found"
